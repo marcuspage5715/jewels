@@ -1,5 +1,6 @@
 package com.marcuspage.jewels;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -75,6 +76,7 @@ public class GameView extends View {
     private final RectF chipClass = new RectF();
     private final RectF chipStack = new RectF();
     private final RectF chipSound = new RectF();
+    private final RectF chipExit = new RectF();
     private final RectF btnPlay = new RectF();
     private final RectF dst = new RectF();
 
@@ -159,7 +161,14 @@ public class GameView extends View {
         chipClass.set(cx - chipW / 2f, y0, cx + chipW / 2f, y0 + chipH);
         chipStack.set(cx - chipW / 2f, y0 + chipH * 1.22f, cx + chipW / 2f, y0 + chipH * 2.22f);
         btnPlay.set(cx - chipW / 2f, y0 + chipH * 2.85f, cx + chipW / 2f, y0 + chipH * 4.05f);
-        chipSound.set(cx - chipW / 2f, y0 + chipH * 4.45f, cx + chipW / 2f, y0 + chipH * 5.25f);
+
+        // Sound and Exit share one row so the footer stays clear of them.
+        float pillH = chipH * 0.80f;
+        float gap = chipH * 0.35f;
+        float halfW = (chipW - gap) / 2f;
+        float pillY = y0 + chipH * 4.45f;
+        chipSound.set(cx - chipW / 2f, pillY, cx - chipW / 2f + halfW, pillY + pillH);
+        chipExit.set(cx + chipW / 2f - halfW, pillY, cx + chipW / 2f, pillY + pillH);
     }
 
     private void buildGems() {
@@ -619,7 +628,8 @@ public class GameView extends View {
         drawText(c, "PLAY", btnPlay.centerX(), btnPlay.centerY() + btnPlay.height() * 0.155f,
                 btnPlay.height() * 0.40f, 0xFF04231A, tfBold, 0.18f, Paint.Align.CENTER);
 
-        drawChip(c, chipSound, "SOUND", sfx.isMuted() ? "OFF" : "ON");
+        drawPill(c, chipSound, "SOUND  " + (sfx.isMuted() ? "OFF" : "ON"), 0xFFA9B7D6);
+        drawPill(c, chipExit, "EXIT", 0xFFFF9A9A);
 
         if (bestRounds > 0) {
             drawText(c, "BEST RUN   ROUND " + bestRounds, cx, chipSound.bottom + s(0.055f),
@@ -630,8 +640,8 @@ public class GameView extends View {
             }
         }
 
-        drawText(c, "SWIPE TO MOVE   TAP TO ROTATE   SWIPE DOWN TO DROP", cx, h * 0.968f,
-                s(0.018f), 0xFF51608A, tfLight, 0.06f, Paint.Align.CENTER);
+        drawTextFitted(c, "SWIPE TO MOVE   TAP TO ROTATE   SWIPE DOWN TO DROP", cx, h * 0.968f,
+                s(0.0155f), 0xFF51608A, tfLight, 0.06f, w * 0.90f);
     }
 
     private void drawChip(Canvas c, RectF r, String label, String value) {
@@ -649,6 +659,39 @@ public class GameView extends View {
                 r.height() * 0.30f, 0xFF7C8AAE, tfLight, 0.22f, Paint.Align.LEFT);
         drawText(c, value, r.right - r.height() * 0.48f, r.centerY() + r.height() * 0.125f,
                 r.height() * 0.34f, 0xFFFFFFFF, tfBold, 0.04f, Paint.Align.RIGHT);
+    }
+
+    /** Single-label chip for the small actions on the title screen. */
+    private void drawPill(Canvas c, RectF r, String label, int labelColor) {
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xFF16203A);
+        c.drawRoundRect(r, r.height() * 0.42f, r.height() * 0.42f, paint);
+
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(Math.max(1.5f, cell * 0.02f));
+        paint.setColor(0xFF2A3A5E);
+        c.drawRoundRect(r, r.height() * 0.42f, r.height() * 0.42f, paint);
+        paint.setStyle(Paint.Style.FILL);
+
+        drawText(c, label, r.centerX(), r.centerY() + r.height() * 0.135f,
+                r.height() * 0.34f, labelColor, tfBold, 0.14f, Paint.Align.CENTER);
+    }
+
+    /** Centred text that shrinks to fit, so a long line can never run off screen. */
+    private void drawTextFitted(Canvas c, String str, float x, float y, float size, int color,
+                                Typeface tf, float spacing, float maxWidth) {
+        text.setTypeface(tf);
+        text.setTextSize(size);
+        text.setLetterSpacing(spacing);
+        float width = text.measureText(str);
+        if (width > maxWidth && width > 0f) {
+            text.setTextSize(size * (maxWidth / width));
+        }
+        text.setColor(color);
+        text.setTextAlign(Paint.Align.CENTER);
+        text.setStyle(Paint.Style.FILL);
+        c.drawText(str, x, y, text);
+        text.setLetterSpacing(0f);
     }
 
     private void drawCard(Canvas c, String title, String big, String sub, String hint) {
@@ -789,6 +832,16 @@ public class GameView extends View {
             sfx.setMuted(muted);
             prefs.edit().putBoolean("muted", muted).apply();
             if (!muted) sfx.play(SoundFx.ROTATE);
+        } else if (chipExit.contains(x, y)) {
+            exitApp();
+        }
+    }
+
+    /** Leaves the app from the title screen. */
+    private void exitApp() {
+        Context context = getContext();
+        if (context instanceof Activity) {
+            ((Activity) context).finish();
         }
     }
 

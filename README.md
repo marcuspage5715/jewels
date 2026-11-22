@@ -67,6 +67,9 @@ The whole screen is one gesture surface — no buttons over the well:
 A faint outline shows where the column will land. Tap anywhere on a card
 (round cleared, overflow, paused) to continue.
 
+On the title screen, **SOUND** mutes the effects and **EXIT** closes the app —
+the system bars are hidden during play, so that button is the quickest way out.
+
 ## Project layout
 
 ```
