@@ -70,6 +70,10 @@ public class GameView extends View {
     private int bestRounds;
     private long bestRoundMs;
 
+    // Where the target jewel sat last round, so the next one moves and changes colour.
+    private int lastTargetColor;
+    private int lastTargetColumn = -1;
+
     // Layout.
     private float w, h;
     private float cell, boardLeft, boardTop, boardW, boardH, hudH;
@@ -285,6 +289,8 @@ public class GameView extends View {
         totalElapsedMs = 0L;
         round = 1;
         level = 1;
+        lastTargetColor = 0;
+        lastTargetColumn = -1;
         startRound();
     }
 
@@ -298,7 +304,11 @@ public class GameView extends View {
         int height = Math.min(ROWS - 3, baseHeight + (round - 1) / 2);
 
         board.generateStack(height, colorCount, rnd);
-        board.placeFlashJewel(colorCount, rnd);
+        int target = board.placeFlashJewel(colorCount, rnd, lastTargetColor, lastTargetColumn);
+        if (target != 0) {
+            lastTargetColor = target;
+            lastTargetColumn = board.targetColumn();
+        }
 
         randomize(nextColors);
         spawnPiece();

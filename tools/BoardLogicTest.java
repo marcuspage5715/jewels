@@ -11,6 +11,12 @@ public class BoardLogicTest {
 
     static Board fresh() { return new Board(); }
 
+    static int bottomRowCount(Board b) {
+        int n = 0;
+        for (int c = 0; c < Board.COLS; c++) if (b.cells[Board.ROWS - 1][c] != 0) n++;
+        return n;
+    }
+
     public static void main(String[] args) {
         // 1. horizontal run of three
         Board b = fresh();
@@ -96,7 +102,7 @@ public class BoardLogicTest {
         for (int t = 0; t < 200; t++) {
             b = fresh();
             b.generateStack(5, 5, rnd);
-            b.placeFlashJewel(5, rnd);
+            b.placeFlashJewel(5, rnd, 0, -1);
             int n = 0;
             for (int rr = 0; rr < Board.ROWS; rr++)
                 for (int cc = 0; cc < Board.COLS; cc++) if (b.flash[rr][cc]) n++;
@@ -109,7 +115,7 @@ public class BoardLogicTest {
         // 15. the target sits in the bottom row
         b = fresh();
         b.generateStack(4, 5, rnd);
-        b.placeFlashJewel(5, rnd);
+        b.placeFlashJewel(5, rnd, 0, -1);
         boolean bottom = false;
         for (int c = 0; c < Board.COLS; c++) if (b.flash[Board.ROWS - 1][c]) bottom = true;
         check("target is in the bottom row", bottom);
@@ -132,6 +138,62 @@ public class BoardLogicTest {
         b.cells[Board.ROWS - 1][0] = 1;
         b.cells[Board.ROWS - 2][0] = 1;
         check("stack height counts columns", b.stackHeight() == 2);
+
+        // 19. the target moves along the bottom row and changes colour
+        java.util.Set<Integer> columns = new java.util.HashSet<>();
+        java.util.Set<Integer> colours = new java.util.HashSet<>();
+        boolean alwaysBottom = true;
+        boolean neverMatches = true;
+        boolean stackIntact = true;
+        boolean colourChanges = true;
+        int prevColour = 0;
+        int prevColumn = -1;
+        int classColours = 5;
+        Random r2 = new Random(99);
+        for (int t = 0; t < 60; t++) {
+            b = fresh();
+            b.generateStack(5, classColours, r2);
+            int before = bottomRowCount(b);
+            int colour = b.placeFlashJewel(classColours, r2, prevColour, prevColumn);
+            int after = bottomRowCount(b);
+
+            if (colour == 0) { alwaysBottom = false; break; }
+            if (after < before) stackIntact = false;
+            if (b.markMatches()) neverMatches = false;
+
+            int col = b.targetColumn();
+            if (col < 0 || !b.flash[Board.ROWS - 1][col]) alwaysBottom = false;
+            if (prevColour != 0 && colour == prevColour) colourChanges = false;
+
+            columns.add(col);
+            colours.add(colour);
+            prevColour = colour;
+            prevColumn = col;
+        }
+        check("target always in the bottom row", alwaysBottom);
+        check("target never starts a match", neverMatches);
+        check("target replaces a jewel, never removes one", stackIntact);
+        check("target colour changes every round", colourChanges);
+        check("target reaches all 6 columns", columns.size() == Board.COLS);
+        check("target uses every colour in play", colours.size() == classColours);
+
+        // 20. the same round repeated with the same seed picks the same spot
+        Board a1 = fresh();
+        a1.generateStack(5, 5, new Random(4));
+        int c1 = a1.placeFlashJewel(5, new Random(4), 0, -1);
+        Board a2 = fresh();
+        a2.generateStack(5, 5, new Random(4));
+        int c2 = a2.placeFlashJewel(5, new Random(4), 0, -1);
+        check("target placement is repeatable per seed", c1 == c2 && a1.targetColumn() == a2.targetColumn());
+
+        // 21. first round is unbiased: every colour can come up
+        java.util.Set<Integer> firstRound = new java.util.HashSet<>();
+        for (int t = 0; t < 120; t++) {
+            Board f = fresh();
+            f.generateStack(5, 4, new Random(t));
+            firstRound.add(f.placeFlashJewel(4, new Random(t * 31 + 7), 0, -1));
+        }
+        check("first round can be any colour", firstRound.size() == 4);
 
         System.out.println("\n" + pass + " passed, " + fail + " failed");
         if (fail > 0) System.exit(1);

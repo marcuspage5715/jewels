@@ -41,7 +41,9 @@ colour horizontally, vertically or diagonally and they vanish; anything above
 falls into the gap, which can set off further matches in a chain.
 
 In Flash Columns a stack of jewels already fills the bottom of the well and one
-jewel flashes. **Clear that jewel to finish the round.** The clock runs, the
+jewel flashes. **Clear that jewel to finish the round.** The target always sits
+in the bottom row, but its column and colour are picked at random each round —
+never the same spot twice in a row — so there is no fixed colour to plan around. The clock runs, the
 stack grows taller each round, and the jewels fall faster. If the well fills to
 the top and a new column cannot enter, the run ends.
 

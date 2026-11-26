@@ -194,30 +194,55 @@ public class Board {
         return false;
     }
 
-    /** Drops the target jewel into the bottom row without creating a match. */
-    public boolean placeFlashJewel(int colorCount, Random rnd) {
-        // Exhaustive pass first, so a round can never be left without a target.
+    /**
+     * Drops the target jewel into the bottom row without creating a match.
+     * Every legal (column, colour) pair is collected first and one is then
+     * picked at random, so the target moves along the bottom row and changes
+     * colour between rounds instead of always landing in the same corner.
+     * Pairs that differ from the previous round's column and colour are
+     * preferred whenever such a pair exists.
+     *
+     * @return the colour placed, or 0 if the bottom row could not take one
+     */
+    public int placeFlashJewel(int colorCount, Random rnd, int previousColor, int previousColumn) {
+        List<int[]> all = new ArrayList<>();
+        List<int[]> otherColor = new ArrayList<>();
+        List<int[]> otherBoth = new ArrayList<>();
+
         for (int c = 0; c < COLS; c++) {
+            int original = cells[ROWS - 1][c];
             for (int v = 1; v <= colorCount; v++) {
                 cells[ROWS - 1][c] = v;
-                if (!markMatches()) {
-                    flash[ROWS - 1][c] = true;
-                    return true;
-                }
-                cells[ROWS - 1][c] = 0;
+                boolean legal = !markMatches();
+                cells[ROWS - 1][c] = original; // restore, so testing never eats a jewel
+                if (!legal) continue;
+
+                int[] candidate = new int[]{c, v};
+                all.add(candidate);
+                if (v != previousColor) otherColor.add(candidate);
+                if (v != previousColor && c != previousColumn) otherBoth.add(candidate);
             }
         }
-        for (int attempt = 0; attempt < 500; attempt++) {
-            int c = rnd.nextInt(COLS);
-            int v = 1 + rnd.nextInt(colorCount);
-            cells[ROWS - 1][c] = v;
-            if (!markMatches()) {
-                flash[ROWS - 1][c] = true;
-                return true;
+
+        List<int[]> pool = !otherBoth.isEmpty() ? otherBoth
+                : !otherColor.isEmpty() ? otherColor
+                : all;
+        if (pool.isEmpty()) return 0;
+
+        int[] pick = pool.get(rnd.nextInt(pool.size()));
+        cells[ROWS - 1][pick[0]] = pick[1];
+        flash[ROWS - 1][pick[0]] = true;
+        return pick[1];
+    }
+
+    /** Column holding the target jewel, or -1 if there is none. */
+    public int targetColumn() {
+        for (int r = 0; r < ROWS; r++) {
+            for (int c = 0; c < COLS; c++) {
+                if (flash[r][c]) return c;
             }
-            cells[ROWS - 1][c] = 0;
         }
-        return false;
+        return -1;
     }
 
     /** Height of the tallest column, used for the overflow check. */
